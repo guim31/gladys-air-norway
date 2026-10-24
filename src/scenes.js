@@ -1,41 +1,56 @@
 // -----------------------------------------------------------------------------
-// Scene actions (SDK v0.14+, Gladys 5.1+).
+// Scene action "Get the air quality" (Gladys 5.1+).
 //
-// A scene action is an OPERATION a scene author places in a scene, with
-// parameters and a result: "identify this device", "take a snapshot", "clean
-// these rooms". Each one is declared in the manifest `scene_actions` field
-// (key, label, `fields` in the config_schema grammar, scalar `outputs`) and
-// handled here, keyed by that same `key`; index.js registers every entry with
-// `gladys.onSceneAction(key, ...)`.
+// Gives a scene the air quality of one place, or of the worst of the added
+// places, as outputs a notification can quote: "{{...summary}}" reads
+// "MET Norway Home: Low (1.6) · PM2.5 2.8 µg/m³ · … · Next 24 h: Moderate at 08:00".
+// The devices already give each value to the scene conditions; what this
+// action adds is the choice of the worst place, the levels as words in the
+// configured language, the hour of the coming peak, and a ready-made sentence.
 //
-// Scene TRIGGERS are the other direction ("this happened"): they are fired by
-// the device that observes the event, see src/devices/motionSensor.js.
-//
-// The rules that matter:
-//   - `fields` arrive RESOLVED: scene variables substituted, defaults applied,
-//     validated by the core; a `"source": "devices"` field is the chosen
-//     device external_id;
-//   - resolve an object of the declared `outputs` (scalars only), readable by
-//     the following actions of the scene, or `undefined` for none. Keys not
-//     declared in the manifest are dropped by the core;
-//   - throwing fails THIS action only: the scene logs it and continues. A
-//     scene action is never a condition: return an output and let the scene
-//     author gate on it;
-//   - never fire a scene event as a consequence of a received action: a scene
-//     bound to that event would loop through the integration.
+// The triggers are fired by the hub (src/hub.js) on each hourly evaluation.
 // -----------------------------------------------------------------------------
 
-import { createLogger } from '@gladysassistant/integration-sdk';
-import { signalDevice } from './devices/index.js';
+import { formatHour, LEVELS, MESSAGES, TEXT } from './i18n.js';
 
-const logger = createLogger({ name: 'scenes' });
+export const GET_AIR_QUALITY = 'get_air_quality';
 
-export const SCENE_ACTIONS = {
-  // The ack is awaited under the action's `timeout_seconds` (15 s in the
-  // manifest), counted from the moment the scene reaches the action.
-  async identify_device(gladys, { fields, config }) {
-    logger.info(`Scene action identify_device <- ${fields.device}`);
-    const signalled = await signalDevice(gladys, fields.device, config);
-    return { signalled };
-  },
-};
+/**
+ * @param {import('./hub.js').Hub} hub
+ * @param {{ place?: string }} fields
+ * @param {string} language
+ */
+export function getAirQuality(hub, fields, language) {
+  const created = hub
+    .configuredRecords()
+    .filter((record) => hub.isCreated(record) && hub.snapshot(record));
+  let record;
+  if (fields.place) {
+    record = created.find((candidate) => candidate === hub.recordByDevice(fields.place));
+  } else {
+    // The worst current index; the first place on a tie.
+    record = [...created].sort((a, b) => hub.snapshot(b).index - hub.snapshot(a).index)[0];
+  }
+  const snap = record ? hub.snapshot(record) : null;
+  if (!snap) {
+    throw new Error(MESSAGES.thrown(TEXT.noReading));
+  }
+  const outputs = {
+    summary: hub.summary(record, language),
+    place_name: hub.nameOf(record),
+    level: snap.key,
+    level_label: LEVELS[snap.key][language],
+    index: snap.index,
+    pollutant: hub.formulas(snap.pollutants) || null,
+    pm25: snap.values.pm25 ?? null,
+    pm10: snap.values.pm10 ?? null,
+    no2: snap.values.no2 ?? null,
+    o3: snap.values.o3 ?? null,
+    peak_level: snap.peak.key,
+    peak_level_label: LEVELS[snap.peak.key][language],
+    peak_index: snap.peak.index,
+    peak_time: formatHour(snap.peak.at),
+  };
+  // A value the forecast lacks is left out (null for the scene).
+  return Object.fromEntries(Object.entries(outputs).filter(([, value]) => value !== null));
+}

@@ -1,8 +1,8 @@
 {
-  "name": "gladys-integration-template-js",
+  "name": "gladys-air-norway",
   "version": "1.0.0",
   "private": true,
-  "description": "Official starter template to build an external integration for Gladys Assistant with the JavaScript SDK.",
+  "description": "Air quality forecast of MET Norway (Norwegian index, PM2.5, PM10, NO2, O3) in Gladys Assistant.",
   "type": "module",
   "main": "index.js",
   "scripts": {
