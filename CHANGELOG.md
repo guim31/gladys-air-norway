@@ -10,6 +10,8 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-24
+
 ### Added
 
 - The air quality forecast of MET Norway in Gladys: one device per house
@@ -27,4 +29,5 @@ the notes of the version's GitHub Release.
 - Feature names and texts in English, French, German and Spanish, and the
   documentation in the four languages.
 
-[Unreleased]: https://github.com/guim31/gladys-air-norway/commits/main
+[Unreleased]: https://github.com/guim31/gladys-air-norway/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/guim31/gladys-air-norway/releases/tag/v1.0.0
