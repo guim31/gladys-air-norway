@@ -1,177 +1,944 @@
 {
   "manifest_version": 1,
   "type": "device",
-  "name": "Demo Devices Template",
+  "name": "Air quality Norway",
   "description": {
-    "en": "Starter template showing sensors, a switch, a dimmable light and a smart plug.",
-    "fr": "Template de démarrage : capteurs, interrupteur, lampe variable et prise connectée."
+    "en": "Air quality forecast of MET Norway for your home or a station: index, pollutants, next 24 hours.",
+    "fr": "Prévision de qualité de l'air de MET Norway chez vous ou à une station : indice, polluants, 24 h.",
+    "de": "Luftqualitätsvorhersage von MET Norway für dein Zuhause oder eine Station: Index, Schadstoffe, 24 h.",
+    "es": "Previsión de calidad del aire de MET Norway en su casa o una estación: índice, contaminantes, 24 h."
   },
   "version": "1.0.0",
-  "docker_image": "ghcr.io/gladysassistant/integration-template-js:1.0.0",
-  "gladys_version": ">=5.1.0",
-  "cover_image": "https://raw.githubusercontent.com/GladysAssistant/integration-template-js/master/cover.png",
-  "categories": ["lighting", "security", "environment"],
-  "transports": ["local", "cloud"],
+  "docker_image": "ghcr.io/guim31/gladys-air-norway:1.0.0",
+  "gladys_version": ">=5.2.0",
+  "cover_image": "https://raw.githubusercontent.com/guim31/gladys-air-norway/main/cover.png",
+  "categories": ["environment"],
+  "transports": ["cloud"],
+  "location": true,
   "config_schema": [
     {
       "key": "intro",
       "type": "section",
-      "label": { "en": "Getting started", "fr": "Pour commencer" },
+      "label": {
+        "en": "Air quality forecast in Norway",
+        "fr": "Prévision de la qualité de l'air en Norvège",
+        "de": "Luftqualitätsvorhersage in Norwegen",
+        "es": "Previsión de la calidad del aire en Noruega"
+      },
       "description": {
-        "en": "The demo weather station reads real data from the free Open-Meteo API: pick the coordinates to observe. No account, no API key.",
-        "fr": "La station météo de démonstration lit de vraies données via l'API gratuite Open-Meteo : choisissez les coordonnées à observer. Pas de compte, pas de clé d'API."
+        "en": "Reads the air quality forecast of MET Norway, the Norwegian Meteorological Institute, through its open API (no account). Each house of Gladys located in Norway becomes a device; stations can be added. Not affiliated with MET Norway.",
+        "fr": "Lit la prévision de qualité de l'air de MET Norway, l'institut météorologique norvégien, par son API ouverte (sans compte). Chaque maison de Gladys située en Norvège devient un appareil ; on peut ajouter des stations. Non affilié à MET Norway.",
+        "de": "Liest die Luftqualitätsvorhersage von MET Norway, dem norwegischen Meteorologischen Institut, über seine offene API (ohne Konto). Jedes Haus von Gladys mit Standort in Norwegen wird ein Gerät; Stationen können hinzukommen. Nicht mit MET Norway verbunden.",
+        "es": "Lee la previsión de calidad del aire de MET Norway, el Instituto Meteorológico de Noruega, mediante su API abierta (sin cuenta). Cada casa de Gladys ubicada en Noruega se convierte en un dispositivo; puede añadir estaciones. Sin afiliación con MET Norway."
       },
       "links": [
         {
-          "url": "https://open-meteo.com/en/docs",
-          "label": { "en": "Open-Meteo documentation", "fr": "Documentation Open-Meteo" }
+          "url": "https://luftkvalitet.miljodirektoratet.no/kart",
+          "label": {
+            "en": "Air quality map (luftkvalitet.info)",
+            "fr": "Carte de la qualité de l'air (luftkvalitet.info)",
+            "de": "Luftqualitätskarte (luftkvalitet.info)",
+            "es": "Mapa de la calidad del aire (luftkvalitet.info)"
+          }
+        },
+        {
+          "url": "https://api.met.no/weatherapi/airqualityforecast/0.1/documentation",
+          "label": {
+            "en": "The MET Norway API",
+            "fr": "L'API de MET Norway",
+            "de": "Die API von MET Norway",
+            "es": "La API de MET Norway"
+          }
         }
       ]
     },
     {
-      "key": "latitude",
-      "type": "number",
-      "label": { "en": "Latitude", "fr": "Latitude" },
-      "description": {
-        "en": "Latitude used for the demo weather sensor.",
-        "fr": "Latitude utilisée par le capteur météo de démonstration."
-      },
-      "placeholder": { "en": "e.g. 48.8566", "fr": "ex. 48.8566" },
-      "required": true,
-      "default": 48.8566,
-      "min": -90,
-      "max": 90
-    },
-    {
-      "key": "longitude",
-      "type": "number",
-      "label": { "en": "Longitude", "fr": "Longitude" },
-      "description": {
-        "en": "Longitude used for the demo weather sensor.",
-        "fr": "Longitude utilisée par le capteur météo de démonstration."
-      },
-      "placeholder": { "en": "e.g. 2.3522", "fr": "ex. 2.3522" },
-      "required": true,
-      "default": 2.3522,
-      "min": -180,
-      "max": 180
-    },
-    {
-      "key": "unit",
+      "key": "area_level",
       "type": "select",
-      "label": { "en": "Temperature unit", "fr": "Unité de température" },
+      "label": {
+        "en": "Area around a house",
+        "fr": "Zone autour d'une maison",
+        "de": "Gebiet um ein Haus",
+        "es": "Zona alrededor de una casa"
+      },
+      "description": {
+        "en": "The forecast of a house is the one of the area it lies in. Changing it reads the houses again.",
+        "fr": "La prévision d'une maison est celle de la zone où elle se trouve. Changer ce choix relit les maisons.",
+        "de": "Die Vorhersage eines Hauses ist die des Gebiets, in dem es liegt. Eine Änderung liest die Häuser neu.",
+        "es": "La previsión de una casa es la de la zona donde se encuentra. Cambiar esta opción vuelve a leer las casas."
+      },
       "required": false,
-      "default": "celsius",
+      "default": "grunnkrets",
       "options": [
-        { "value": "celsius", "label": { "en": "Celsius", "fr": "Celsius" } },
-        { "value": "fahrenheit", "label": { "en": "Fahrenheit", "fr": "Fahrenheit" } }
+        {
+          "value": "grunnkrets",
+          "label": {
+            "en": "Neighbourhood (grunnkrets)",
+            "fr": "Quartier (grunnkrets)",
+            "de": "Viertel (grunnkrets)",
+            "es": "Barrio (grunnkrets)"
+          }
+        },
+        {
+          "value": "delomrade",
+          "label": {
+            "en": "District (delområde)",
+            "fr": "Secteur (delområde)",
+            "de": "Bezirk (delområde)",
+            "es": "Distrito (delområde)"
+          }
+        },
+        {
+          "value": "kommune",
+          "label": {
+            "en": "Municipality (kommune)",
+            "fr": "Commune (kommune)",
+            "de": "Gemeinde (kommune)",
+            "es": "Municipio (kommune)"
+          }
+        }
       ]
     },
     {
-      "key": "poll_frequency",
-      "type": "number",
-      "label": { "en": "Refresh interval (s)", "fr": "Intervalle de rafraîchissement (s)" },
+      "key": "stations",
+      "type": "string",
+      "label": {
+        "en": "Stations",
+        "fr": "Stations",
+        "de": "Stationen",
+        "es": "Estaciones"
+      },
       "description": {
-        "en": "How often sensors are polled, in seconds (one minute minimum).",
-        "fr": "Fréquence d'interrogation des capteurs, en secondes (une minute minimum)."
+        "en": "Optional: the codes of measuring stations to follow too, separated by commas (10 at most). The \"Find a station\" button below gives them.",
+        "fr": "Facultatif : les codes des stations de mesure à suivre en plus, séparés par des virgules (10 au plus). Le bouton « Trouver une station » ci-dessous les donne.",
+        "de": "Optional: die Codes zusätzlicher Messstationen, durch Kommas getrennt (höchstens 10). Der Button „Station finden“ unten liefert sie.",
+        "es": "Opcional: los códigos de las estaciones de medición que también desea seguir, separados por comas (10 como máximo). El botón «Buscar una estación» más abajo se los da."
+      },
+      "placeholder": {
+        "en": "e.g. NO0057A, NO0101A",
+        "fr": "ex. NO0057A, NO0101A",
+        "de": "z. B. NO0057A, NO0101A",
+        "es": "p. ej. NO0057A, NO0101A"
       },
       "required": false,
-      "default": 300,
-      "min": 60,
-      "max": 3600
+      "default": ""
+    },
+    {
+      "key": "language",
+      "type": "select",
+      "label": {
+        "en": "Language",
+        "fr": "Langue",
+        "de": "Sprache",
+        "es": "Idioma"
+      },
+      "description": {
+        "en": "Language of the feature names (set when a device is added) and of the scene texts.",
+        "fr": "Langue des noms de fonctionnalités (fixés à l'ajout d'un appareil) et des textes de scène.",
+        "de": "Sprache der Funktionsnamen (beim Hinzufügen eines Geräts festgelegt) und der Szenentexte.",
+        "es": "Idioma de los nombres de las funciones (fijados al añadir un dispositivo) y de los textos de escena."
+      },
+      "required": false,
+      "default": "fr",
+      "options": [
+        {
+          "value": "en",
+          "label": {
+            "en": "English",
+            "fr": "Anglais",
+            "de": "Englisch",
+            "es": "Inglés"
+          }
+        },
+        {
+          "value": "fr",
+          "label": {
+            "en": "French",
+            "fr": "Français",
+            "de": "Französisch",
+            "es": "Francés"
+          }
+        },
+        {
+          "value": "de",
+          "label": {
+            "en": "German",
+            "fr": "Allemand",
+            "de": "Deutsch",
+            "es": "Alemán"
+          }
+        },
+        {
+          "value": "es",
+          "label": {
+            "en": "Spanish",
+            "fr": "Espagnol",
+            "de": "Spanisch",
+            "es": "Español"
+          }
+        }
+      ]
     }
   ],
   "actions": [
     {
-      "key": "test_weather",
-      "label": { "en": "Test the weather provider", "fr": "Tester le fournisseur météo" },
-      "timeout_seconds": 30
-    },
-    {
-      "key": "identify",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
+      "key": "find_station",
+      "label": {
+        "en": "Find a station",
+        "fr": "Trouver une station",
+        "de": "Station finden",
+        "es": "Buscar una estación"
+      },
+      "timeout_seconds": 30,
       "fields": [
         {
-          "key": "device",
+          "key": "query",
+          "type": "string",
+          "label": {
+            "en": "Name or municipality",
+            "fr": "Nom ou commune",
+            "de": "Name oder Gemeinde",
+            "es": "Nombre o municipio"
+          },
+          "description": {
+            "en": "Accents and ø, æ, å are optional. Empty: the stations nearest to the house.",
+            "fr": "Accents et ø, æ, å facultatifs. Vide : les stations les plus proches de la maison.",
+            "de": "Akzente und ø, æ, å sind optional. Leer: die Stationen, die dem Haus am nächsten sind.",
+            "es": "Los acentos y ø, æ, å son opcionales. Vacío: las estaciones más cercanas a la casa."
+          },
+          "placeholder": {
+            "en": "e.g. Bergen",
+            "fr": "ex. Bergen",
+            "de": "z. B. Bergen",
+            "es": "p. ej. Bergen"
+          },
+          "required": false
+        },
+        {
+          "key": "house",
           "type": "select",
-          "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
+          "source": "houses",
+          "label": {
+            "en": "House",
+            "fr": "Maison",
+            "de": "Haus",
+            "es": "Casa"
+          },
+          "description": {
+            "en": "Sorts by distance. Empty: the first located house when no name is typed.",
+            "fr": "Trie par distance. Vide : la première maison située si aucun nom n'est saisi.",
+            "de": "Sortiert nach Entfernung. Leer: das erste Haus mit Standort, wenn kein Name eingegeben ist.",
+            "es": "Ordena por distancia. Vacío: la primera casa con ubicación si no escribe ningún nombre."
+          },
+          "required": false
         }
       ]
+    },
+    {
+      "key": "check_places",
+      "label": {
+        "en": "Check the places",
+        "fr": "Vérifier les lieux",
+        "de": "Orte prüfen",
+        "es": "Comprobar los lugares"
+      },
+      "timeout_seconds": 120
     }
   ],
   "scene_triggers": [
     {
-      "key": "motion_detected",
-      "label": { "en": "Motion detected", "fr": "Mouvement détecté" },
+      "key": "air_quality_degraded",
+      "label": {
+        "en": "Norway air: air quality degraded",
+        "fr": "Air Norvège : qualité de l'air dégradée",
+        "de": "Luft Norwegen: Luftqualität verschlechtert",
+        "es": "Aire Noruega: calidad del aire degradada"
+      },
       "description": {
-        "en": "A demo motion sensor saw a person or an animal move.",
-        "fr": "Un détecteur de démonstration a vu bouger une personne ou un animal."
+        "en": "The index of a place now rises to \"Moderate\" or worse, or gets worse again.",
+        "fr": "L'indice d'un lieu passe maintenant à « Modéré » ou pire, ou s'aggrave encore.",
+        "de": "Der aktuelle Index eines Orts steigt auf „Mäßig“ oder schlechter, oder verschlechtert sich weiter.",
+        "es": "El índice actual de un lugar sube a «Moderado» o peor, o empeora de nuevo."
       },
       "fields": [
         {
-          "key": "device",
+          "key": "place",
           "type": "select",
           "source": "devices",
-          "label": { "en": "Sensor", "fr": "Détecteur" }
+          "label": {
+            "en": "Place",
+            "fr": "Lieu",
+            "de": "Ort",
+            "es": "Lugar"
+          },
+          "description": {
+            "en": "Empty: any place.",
+            "fr": "Vide : tous les lieux.",
+            "de": "Leer: jeder Ort.",
+            "es": "Vacío: cualquier lugar."
+          },
+          "required": false
         },
         {
-          "key": "target",
+          "key": "level",
           "type": "multi_select",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" },
+          "label": {
+            "en": "New level",
+            "fr": "Nouveau niveau",
+            "de": "Neue Stufe",
+            "es": "Nuevo nivel"
+          },
+          "description": {
+            "en": "Tick the levels from your threshold up. Empty: any.",
+            "fr": "Cochez les niveaux à partir de votre seuil. Vide : tous.",
+            "de": "Wähle die Stufen ab deiner Schwelle. Leer: alle.",
+            "es": "Marque los niveles a partir de su umbral. Vacío: todos."
+          },
           "options": [
-            { "value": "person", "label": { "en": "Person", "fr": "Personne" } },
-            { "value": "animal", "label": { "en": "Animal", "fr": "Animal" } }
+            {
+              "value": "moderate",
+              "label": {
+                "en": "Moderate",
+                "fr": "Modéré",
+                "de": "Mäßig",
+                "es": "Moderado"
+              }
+            },
+            {
+              "value": "high",
+              "label": {
+                "en": "High",
+                "fr": "Élevé",
+                "de": "Hoch",
+                "es": "Alto"
+              }
+            },
+            {
+              "value": "very_high",
+              "label": {
+                "en": "Very high",
+                "fr": "Très élevé",
+                "de": "Sehr hoch",
+                "es": "Muy alto"
+              }
+            }
           ]
         }
       ],
       "variables": [
         {
-          "key": "target",
+          "key": "place_name",
           "type": "string",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" }
+          "label": {
+            "en": "Place name",
+            "fr": "Nom du lieu",
+            "de": "Name des Orts",
+            "es": "Nombre del lugar"
+          }
+        },
+        {
+          "key": "level",
+          "type": "string",
+          "label": {
+            "en": "Level (key)",
+            "fr": "Niveau (clé)",
+            "de": "Stufe (Schlüssel)",
+            "es": "Nivel (clave)"
+          }
+        },
+        {
+          "key": "level_label",
+          "type": "string",
+          "label": {
+            "en": "Level",
+            "fr": "Niveau",
+            "de": "Stufe",
+            "es": "Nivel"
+          }
+        },
+        {
+          "key": "index",
+          "type": "number",
+          "label": {
+            "en": "Index (1 to 4+)",
+            "fr": "Indice (1 à 4+)",
+            "de": "Index (1 bis 4+)",
+            "es": "Índice (1 a 4+)"
+          }
+        },
+        {
+          "key": "previous_level",
+          "type": "string",
+          "label": {
+            "en": "Previous level (key)",
+            "fr": "Niveau précédent (clé)",
+            "de": "Vorherige Stufe (Schlüssel)",
+            "es": "Nivel anterior (clave)"
+          }
+        },
+        {
+          "key": "pollutant",
+          "type": "string",
+          "label": {
+            "en": "Pollutant setting the index",
+            "fr": "Polluant qui fixe l'indice",
+            "de": "Schadstoff, der den Index bestimmt",
+            "es": "Contaminante que fija el índice"
+          }
+        },
+        {
+          "key": "summary",
+          "type": "string",
+          "label": {
+            "en": "Summary",
+            "fr": "Résumé",
+            "de": "Zusammenfassung",
+            "es": "Resumen"
+          }
+        }
+      ]
+    },
+    {
+      "key": "air_quality_forecast_degraded",
+      "label": {
+        "en": "Norway air: degradation forecast",
+        "fr": "Air Norvège : dégradation prévue",
+        "de": "Luft Norwegen: Verschlechterung erwartet",
+        "es": "Aire Noruega: degradación prevista"
+      },
+      "description": {
+        "en": "The worst level of the next 24 hours of a place rises to \"Moderate\" or worse, or gets worse again.",
+        "fr": "Le pire niveau des prochaines 24 h d'un lieu passe à « Modéré » ou pire, ou s'aggrave encore.",
+        "de": "Die schlechteste Stufe der nächsten 24 Stunden eines Orts steigt auf „Mäßig“ oder schlechter, oder verschlechtert sich weiter.",
+        "es": "El peor nivel de las próximas 24 horas de un lugar sube a «Moderado» o peor, o empeora de nuevo."
+      },
+      "fields": [
+        {
+          "key": "place",
+          "type": "select",
+          "source": "devices",
+          "label": {
+            "en": "Place",
+            "fr": "Lieu",
+            "de": "Ort",
+            "es": "Lugar"
+          },
+          "description": {
+            "en": "Empty: any place.",
+            "fr": "Vide : tous les lieux.",
+            "de": "Leer: jeder Ort.",
+            "es": "Vacío: cualquier lugar."
+          },
+          "required": false
+        },
+        {
+          "key": "level",
+          "type": "multi_select",
+          "label": {
+            "en": "Forecast level",
+            "fr": "Niveau prévu",
+            "de": "Erwartete Stufe",
+            "es": "Nivel previsto"
+          },
+          "description": {
+            "en": "Tick the levels from your threshold up. Empty: any.",
+            "fr": "Cochez les niveaux à partir de votre seuil. Vide : tous.",
+            "de": "Wähle die Stufen ab deiner Schwelle. Leer: alle.",
+            "es": "Marque los niveles a partir de su umbral. Vacío: todos."
+          },
+          "options": [
+            {
+              "value": "moderate",
+              "label": {
+                "en": "Moderate",
+                "fr": "Modéré",
+                "de": "Mäßig",
+                "es": "Moderado"
+              }
+            },
+            {
+              "value": "high",
+              "label": {
+                "en": "High",
+                "fr": "Élevé",
+                "de": "Hoch",
+                "es": "Alto"
+              }
+            },
+            {
+              "value": "very_high",
+              "label": {
+                "en": "Very high",
+                "fr": "Très élevé",
+                "de": "Sehr hoch",
+                "es": "Muy alto"
+              }
+            }
+          ]
+        }
+      ],
+      "variables": [
+        {
+          "key": "place_name",
+          "type": "string",
+          "label": {
+            "en": "Place name",
+            "fr": "Nom du lieu",
+            "de": "Name des Orts",
+            "es": "Nombre del lugar"
+          }
+        },
+        {
+          "key": "level",
+          "type": "string",
+          "label": {
+            "en": "Level (key)",
+            "fr": "Niveau (clé)",
+            "de": "Stufe (Schlüssel)",
+            "es": "Nivel (clave)"
+          }
+        },
+        {
+          "key": "level_label",
+          "type": "string",
+          "label": {
+            "en": "Level",
+            "fr": "Niveau",
+            "de": "Stufe",
+            "es": "Nivel"
+          }
+        },
+        {
+          "key": "index",
+          "type": "number",
+          "label": {
+            "en": "Index (1 to 4+)",
+            "fr": "Indice (1 à 4+)",
+            "de": "Index (1 bis 4+)",
+            "es": "Índice (1 a 4+)"
+          }
+        },
+        {
+          "key": "previous_level",
+          "type": "string",
+          "label": {
+            "en": "Previous level (key)",
+            "fr": "Niveau précédent (clé)",
+            "de": "Vorherige Stufe (Schlüssel)",
+            "es": "Nivel anterior (clave)"
+          }
+        },
+        {
+          "key": "time",
+          "type": "string",
+          "label": {
+            "en": "Hour of the peak",
+            "fr": "Heure du pic",
+            "de": "Uhrzeit der Spitze",
+            "es": "Hora del pico"
+          }
+        },
+        {
+          "key": "hours_ahead",
+          "type": "number",
+          "label": {
+            "en": "Hours until the peak",
+            "fr": "Heures avant le pic",
+            "de": "Stunden bis zur Spitze",
+            "es": "Horas hasta el pico"
+          }
+        },
+        {
+          "key": "pollutant",
+          "type": "string",
+          "label": {
+            "en": "Pollutant setting the index",
+            "fr": "Polluant qui fixe l'indice",
+            "de": "Schadstoff, der den Index bestimmt",
+            "es": "Contaminante que fija el índice"
+          }
+        },
+        {
+          "key": "summary",
+          "type": "string",
+          "label": {
+            "en": "Summary",
+            "fr": "Résumé",
+            "de": "Zusammenfassung",
+            "es": "Resumen"
+          }
+        }
+      ]
+    },
+    {
+      "key": "air_quality_back_to_normal",
+      "label": {
+        "en": "Norway air: back to normal",
+        "fr": "Air Norvège : retour à la normale",
+        "de": "Luft Norwegen: wieder normal",
+        "es": "Aire Noruega: vuelta a la normalidad"
+      },
+      "description": {
+        "en": "The index of a place comes back to \"Low\" after a degradation.",
+        "fr": "L'indice d'un lieu revient à « Faible » après une dégradation.",
+        "de": "Der Index eines Orts kehrt nach einer Verschlechterung zu „Gering“ zurück.",
+        "es": "El índice de un lugar vuelve a «Bajo» tras una degradación."
+      },
+      "fields": [
+        {
+          "key": "place",
+          "type": "select",
+          "source": "devices",
+          "label": {
+            "en": "Place",
+            "fr": "Lieu",
+            "de": "Ort",
+            "es": "Lugar"
+          },
+          "description": {
+            "en": "Empty: any place.",
+            "fr": "Vide : tous les lieux.",
+            "de": "Leer: jeder Ort.",
+            "es": "Vacío: cualquier lugar."
+          },
+          "required": false
+        },
+        {
+          "key": "worst_level",
+          "type": "multi_select",
+          "label": {
+            "en": "After a degradation to",
+            "fr": "Après une dégradation à",
+            "de": "Nach einer Verschlechterung auf",
+            "es": "Tras una degradación a"
+          },
+          "description": {
+            "en": "The worst level reached. Tick the levels from your threshold up. Empty: any.",
+            "fr": "Le pire niveau atteint. Cochez les niveaux à partir de votre seuil. Vide : tous.",
+            "de": "Die schlechteste erreichte Stufe. Wähle die Stufen ab deiner Schwelle. Leer: alle.",
+            "es": "El peor nivel alcanzado. Marque los niveles a partir de su umbral. Vacío: todos."
+          },
+          "options": [
+            {
+              "value": "moderate",
+              "label": {
+                "en": "Moderate",
+                "fr": "Modéré",
+                "de": "Mäßig",
+                "es": "Moderado"
+              }
+            },
+            {
+              "value": "high",
+              "label": {
+                "en": "High",
+                "fr": "Élevé",
+                "de": "Hoch",
+                "es": "Alto"
+              }
+            },
+            {
+              "value": "very_high",
+              "label": {
+                "en": "Very high",
+                "fr": "Très élevé",
+                "de": "Sehr hoch",
+                "es": "Muy alto"
+              }
+            }
+          ]
+        }
+      ],
+      "variables": [
+        {
+          "key": "place_name",
+          "type": "string",
+          "label": {
+            "en": "Place name",
+            "fr": "Nom du lieu",
+            "de": "Name des Orts",
+            "es": "Nombre del lugar"
+          }
+        },
+        {
+          "key": "level",
+          "type": "string",
+          "label": {
+            "en": "Level (key)",
+            "fr": "Niveau (clé)",
+            "de": "Stufe (Schlüssel)",
+            "es": "Nivel (clave)"
+          }
+        },
+        {
+          "key": "level_label",
+          "type": "string",
+          "label": {
+            "en": "Level",
+            "fr": "Niveau",
+            "de": "Stufe",
+            "es": "Nivel"
+          }
+        },
+        {
+          "key": "index",
+          "type": "number",
+          "label": {
+            "en": "Index (1 to 4+)",
+            "fr": "Indice (1 à 4+)",
+            "de": "Index (1 bis 4+)",
+            "es": "Índice (1 a 4+)"
+          }
+        },
+        {
+          "key": "worst_level",
+          "type": "string",
+          "label": {
+            "en": "Worst level (key)",
+            "fr": "Pire niveau (clé)",
+            "de": "Schlechteste Stufe (Schlüssel)",
+            "es": "Peor nivel (clave)"
+          }
+        },
+        {
+          "key": "worst_level_label",
+          "type": "string",
+          "label": {
+            "en": "Worst level",
+            "fr": "Pire niveau",
+            "de": "Schlechteste Stufe",
+            "es": "Peor nivel"
+          }
+        },
+        {
+          "key": "summary",
+          "type": "string",
+          "label": {
+            "en": "Summary",
+            "fr": "Résumé",
+            "de": "Zusammenfassung",
+            "es": "Resumen"
+          }
         }
       ]
     }
   ],
   "scene_actions": [
     {
-      "key": "identify_device",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "description": {
-        "en": "Make a device signal itself (the demo light blinks).",
-        "fr": "Fait se signaler un appareil (la lampe de démonstration clignote)."
+      "key": "get_air_quality",
+      "label": {
+        "en": "Norway air: get the air quality",
+        "fr": "Air Norvège : obtenir la qualité de l'air",
+        "de": "Luft Norwegen: Luftqualität abrufen",
+        "es": "Aire Noruega: obtener la calidad del aire"
       },
-      "timeout_seconds": 15,
+      "description": {
+        "en": "Of one place, or the worst of yours, with the coming peak and a sentence ready for a notification.",
+        "fr": "D'un lieu, ou le pire des vôtres, avec le pic à venir et une phrase prête pour une notification.",
+        "de": "Für einen Ort oder den schlechtesten deiner Orte, mit der kommenden Spitze und einem fertigen Satz für eine Benachrichtigung.",
+        "es": "De un lugar, o el peor de los suyos, con el pico próximo y una frase lista para una notificación."
+      },
+      "timeout_seconds": 10,
       "fields": [
         {
-          "key": "device",
+          "key": "place",
           "type": "select",
           "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
+          "label": {
+            "en": "Place",
+            "fr": "Lieu",
+            "de": "Ort",
+            "es": "Lugar"
+          },
+          "description": {
+            "en": "Empty: the place with the worst index.",
+            "fr": "Vide : le lieu dont l'indice est le pire.",
+            "de": "Leer: der Ort mit dem schlechtesten Index.",
+            "es": "Vacío: el lugar con el peor índice."
+          },
+          "required": false
         }
       ],
       "outputs": [
         {
-          "key": "signalled",
-          "type": "boolean",
-          "label": { "en": "Device signalled", "fr": "Appareil signalé" }
+          "key": "summary",
+          "type": "string",
+          "label": {
+            "en": "Summary",
+            "fr": "Résumé",
+            "de": "Zusammenfassung",
+            "es": "Resumen"
+          }
+        },
+        {
+          "key": "place_name",
+          "type": "string",
+          "label": {
+            "en": "Place name",
+            "fr": "Nom du lieu",
+            "de": "Name des Orts",
+            "es": "Nombre del lugar"
+          }
+        },
+        {
+          "key": "level_label",
+          "type": "string",
+          "label": {
+            "en": "Level",
+            "fr": "Niveau",
+            "de": "Stufe",
+            "es": "Nivel"
+          }
+        },
+        {
+          "key": "level",
+          "type": "string",
+          "label": {
+            "en": "Level (key)",
+            "fr": "Niveau (clé)",
+            "de": "Stufe (Schlüssel)",
+            "es": "Nivel (clave)"
+          }
+        },
+        {
+          "key": "index",
+          "type": "number",
+          "label": {
+            "en": "Index (1 to 4+)",
+            "fr": "Indice (1 à 4+)",
+            "de": "Index (1 bis 4+)",
+            "es": "Índice (1 a 4+)"
+          }
+        },
+        {
+          "key": "pollutant",
+          "type": "string",
+          "label": {
+            "en": "Pollutant setting the index",
+            "fr": "Polluant qui fixe l'indice",
+            "de": "Schadstoff, der den Index bestimmt",
+            "es": "Contaminante que fija el índice"
+          }
+        },
+        {
+          "key": "pm25",
+          "type": "number",
+          "label": {
+            "en": "PM2.5 (µg/m³)",
+            "fr": "PM2.5 (µg/m³)",
+            "de": "PM2.5 (µg/m³)",
+            "es": "PM2.5 (µg/m³)"
+          }
+        },
+        {
+          "key": "pm10",
+          "type": "number",
+          "label": {
+            "en": "PM10 (µg/m³)",
+            "fr": "PM10 (µg/m³)",
+            "de": "PM10 (µg/m³)",
+            "es": "PM10 (µg/m³)"
+          }
+        },
+        {
+          "key": "no2",
+          "type": "number",
+          "label": {
+            "en": "NO₂ (µg/m³)",
+            "fr": "NO₂ (µg/m³)",
+            "de": "NO₂ (µg/m³)",
+            "es": "NO₂ (µg/m³)"
+          }
+        },
+        {
+          "key": "o3",
+          "type": "number",
+          "label": {
+            "en": "O₃ (µg/m³)",
+            "fr": "O₃ (µg/m³)",
+            "de": "O₃ (µg/m³)",
+            "es": "O₃ (µg/m³)"
+          }
+        },
+        {
+          "key": "peak_level_label",
+          "type": "string",
+          "label": {
+            "en": "Worst level, next 24 h",
+            "fr": "Pire niveau sur 24 h",
+            "de": "Schlechteste Stufe, nächste 24 Std.",
+            "es": "Peor nivel, próximas 24 h"
+          }
+        },
+        {
+          "key": "peak_level",
+          "type": "string",
+          "label": {
+            "en": "Worst level, next 24 h (key)",
+            "fr": "Pire niveau sur 24 h (clé)",
+            "de": "Schlechteste Stufe, 24 Std. (Schlüssel)",
+            "es": "Peor nivel, 24 h (clave)"
+          }
+        },
+        {
+          "key": "peak_index",
+          "type": "number",
+          "label": {
+            "en": "Highest index, next 24 h",
+            "fr": "Indice maximal sur 24 h",
+            "de": "Höchster Index, nächste 24 Std.",
+            "es": "Índice máximo, próximas 24 h"
+          }
+        },
+        {
+          "key": "peak_time",
+          "type": "string",
+          "label": {
+            "en": "Hour of the peak",
+            "fr": "Heure du pic",
+            "de": "Uhrzeit der Spitze",
+            "es": "Hora del pico"
+          }
         }
       ]
     }
   ],
   "widgets": [
     {
-      "key": "demo_status",
-      "label": { "en": "Demo status", "fr": "État de la démo" },
-      "description": {
-        "en": "Live temperature and plug power, plug connection and observed location.",
-        "fr": "Température et puissance en direct, connexion de la prise, position observée."
+      "key": "air_quality",
+      "label": {
+        "en": "Air quality Norway",
+        "fr": "Qualité de l'air Norvège",
+        "de": "Luftqualität Norwegen",
+        "es": "Calidad del aire Noruega"
       },
-      "icon": "activity",
-      "action_timeout_seconds": 15
+      "description": {
+        "en": "Norwegian index now and over 24 h, colored by level, with the pollutants.",
+        "fr": "Indice norvégien maintenant et sur 24 h, coloré selon le niveau, avec les polluants.",
+        "de": "Norwegischer Index jetzt und über 24 Std., nach Stufe eingefärbt, mit den Schadstoffen.",
+        "es": "Índice noruego ahora y en 24 h, coloreado según el nivel, con los contaminantes."
+      },
+      "icon": "wind",
+      "settings": [
+        {
+          "key": "place",
+          "type": "select",
+          "source": "devices",
+          "label": {
+            "en": "Place",
+            "fr": "Lieu",
+            "de": "Ort",
+            "es": "Lugar"
+          },
+          "description": {
+            "en": "Empty: one row per place.",
+            "fr": "Vide : une ligne par lieu.",
+            "de": "Leer: eine Zeile pro Ort.",
+            "es": "Vacío: una fila por lugar."
+          },
+          "required": false
+        }
+      ]
     }
   ]
 }

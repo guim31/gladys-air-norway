@@ -32,15 +32,23 @@ pushing.
 
 ```
 index.js                          SDK wiring only: handlers registered before connect()
-src/devices/index.js              registry of the device blueprints + dispatch helpers
-src/devices/<type>.js             one device type per file (buildDevice, onPoll, onSetValue...)
-src/scenes.js                     scene action handlers (manifest `scene_actions`)
-src/widgets.js                    dashboard widget handlers (manifest `widgets`)
+src/app.js                        every handler, wired on a Gladys client (real or fake)
+src/api.js                        the MET Norway API: the only place that knows its URLs and fields
+src/forecast.js                   the Norwegian index levels, the current hour, the 24-hour peak
+src/hub.js                        the places (houses, stations), reads, states, scene triggers
+src/poller.js                     the container's own timer (should_poll: false)
+src/devices.js                    one device per place (buildDevice, feature keys)
+src/catalog.js                    the station list (in memory a day), search by name / distance
+src/actions.js                    Configuration buttons (find a station, check the places)
+src/scenes.js                     scene action handler (manifest `scene_actions`)
+src/widgets.js                    dashboard widget handler (manifest `widgets`)
+src/i18n.js                       every produced text, in en/fr/de/es
 src/config.js                     DEFAULT_CONFIG (mirrors the manifest defaults) + normalization
-src/weather.js                    example driver (Open-Meteo)
+src/store.js, src/issues.js       /data persistence, failures logged once
 gladys-assistant-integration.json manifest: name, config_schema, actions, image...
-docs/en.md, docs/fr.md            user documentation, re-hosted by Gladys (mandatory)
+docs/{en,fr,de,es}.md             user documentation, re-hosted by Gladys (mandatory)
 test/                             node --test, against the SDK's fake Gladys (integration-sdk/testing)
+test/fixtures/met/                real MET Norway answers recorded on 2026-10-24
 .github/scripts/release.mjs       release helpers (manifest bump, changelog), tested in test/
 ```
 
@@ -70,8 +78,9 @@ test/                             node --test, against the SDK's fake Gladys (in
   `type: "provider"`: 5.1.0). `test/manifest.test.js` ties the manifest to the
   code (defaults, action, scene and widget handlers): change both sides
   together.
-- **User-facing text** is bilingual (English and French): action messages,
-  manifest texts, and `docs/en.md` / `docs/fr.md`, kept in sync.
+- **User-facing text** exists in English, French, German and Spanish: action
+  messages, manifest texts, feature names, and `docs/{en,fr,de,es}.md`, kept
+  in sync (`test/i18n.test.js`).
 - **Style.** Prettier formats, ESLint catches mistakes. Comments explain why,
   in English. Tests never touch the network.
 
@@ -233,3 +242,37 @@ long, et sur un « Sie »/« Ihr… » de politesse en allemand. Le store exige 
 - Docs `en`, `fr`, `de`, `es` avec les mêmes sections.
 - Chauffe, ouverture, sécurité : ne rien rendre pilotable « comme un thermostat » ou par un assistant
   vocal quand une erreur serait dangereuse (leçon d'OctoPrint).
+
+## MET Norway, qualité de l'air (cette intégration)
+
+- **API** `https://api.met.no/weatherapi/airqualityforecast/0.1/` (ouverte, sans clé), mêmes conditions que
+  Locationforecast (`gladys-met-no`) : User-Agent identifiant avec contact (sinon 403), 4 décimales au plus,
+  `Expires` (5 min) puis `If-Modified-Since` (304 vérifié sur l'API réelle le 24/10/2026), 429 → pause.
+- Requêtes : `?lat=&lon=&areaclass=grunnkrets|delomrade|kommune` (`fylke` : 400) ou `?station=<code>`.
+  **`areacode=` n'existe pas** (400 « not listed in the validation options ») : une zone se choisit par
+  `areaclass` autour d'un point. `/stations` (82 stations) ; `/areas` ne liste que des grunnkrets (14 101,
+  2,7 Mo) : inutilisé.
+- Codes de station : surtout `NO0057A` (EoI), mais une dizaine de codes locaux (`Loallme`, `OlavVga`…) **sensibles à
+  la casse** (`LOALLME` → 400). `config.js` ne met en majuscules que le motif EoI.
+- Hors de Norvège : **400 `{"detail":"unknown location: (lon,lat)"}`** ; station inconnue : 400
+  `{"detail":"undefined station requested"}`. Pas d'appareil, statut clair, nouvel essai quotidien (ou à la
+  demande, bouton « Vérifier les lieux »).
+- Réponse : série horaire `data.time[]` de 06:00 UTC du jour du run à +54 h environ (`from` = `to`), puis **une
+  entrée agrégée sur la journée locale suivante** (`from` 22:00 UTC → `to` 22:00 UTC le lendemain, maxima du
+  jour) **sans clé `reason`**, placée en fin de tableau : elle doublonnait 22:00 UTC. `parseForecast` ne garde que
+  `from === to`. `meta.location.name` contient des doubles espaces (« Sentrum 2 - Rode 11 ») : repliés.
+- Indice norvégien continu : < 2 faible, 2–3 modéré, 3–4 élevé, ≥ 4 très élevé (pyMetno et luftkvalitet.info) ;
+  `AQI` = max des `AQI_<polluant>`. Publié à une décimale, **jamais arrondi au-dessus d'un seuil** (1,96 → 1.9).
+- Nouvelle série fusionnée heure par heure avec l'ancienne (3 h de passé gardées) : l'heure courante existe
+  encore quand un run commence plus tard. L'heure avance sans requête ; l'évaluation (états, déclencheurs) se
+  fait à chaque lecture et à chaque changement d'heure.
+- Déclencheurs : `air_quality_degraded` / `air_quality_back_to_normal` sur le niveau actuel (comme gios),
+  `air_quality_forecast_degraded` sur le pire niveau des 24 h à venir (`time` en heure locale de Gladys via
+  `TZ`). Repères `current` / `peak` gardés sous `/data` avec leur date (plus vieux que 3 h : pas de référence,
+  donc pas d'événement).
+- Échec de lecture (5xx, délai, réseau, 400 imprévu) : nouvel essai après 5 min, 15 min, puis toutes les heures
+  (`record.failures`), sans quoi le minuteur relançait la requête chaque minute. La pause 429/403 est gardée sous
+  `/data` et bloque aussi « Trouver une station ».
+- `onDeviceCreated` republie **dans la file du poller** (`forgetPublishedStates` puis `refreshNow`) : publiés à
+  côté d'un cycle du minuteur, les événements de scène en attente pouvaient partir deux fois.
+- Pas de matériel : tout est testable contre l'API réelle, d'où les fixtures enregistrées.
