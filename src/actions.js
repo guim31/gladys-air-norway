@@ -45,6 +45,9 @@ export async function findStation(gladys, hub, fields) {
   }
   let stations;
   try {
+    if (hub.isPaused()) {
+      throw new Error('paused');
+    }
     stations = await hub.catalog.ensure();
   } catch {
     throw new Error(MESSAGES.thrown(TEXT.catalogUnavailable));

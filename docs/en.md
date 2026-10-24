@@ -65,9 +65,9 @@ The first evaluation after the installation only sets the starting levels: nothi
 
 ## Scene examples
 
-- **Warn before it gets bad**: trigger "degradation forecast", levels High and Very high → send a message "Air quality {{trigger.level_label}} expected at {{trigger.time}} near {{trigger.place_name}}".
+- **Warn before it gets bad**: trigger "degradation forecast", levels High and Very high → send a message "Air quality {{triggerEvent.data.level_label}} expected at {{triggerEvent.data.time}} near {{triggerEvent.data.place_name}}".
 - **Close the windows**: trigger "air quality degraded", level Moderate and worse → notify, or turn the ventilation down; trigger "back to normal" → turn it back up.
-- **Morning briefing**: at 7:00, action "get the air quality" → send `{{summary}}` with the weather.
+- **Morning briefing**: at 7:00, action "get the air quality" → send its summary with the weather.
 
 ## Troubleshooting
 
@@ -80,4 +80,4 @@ The first evaluation after the installation only sets the starting levels: nothi
 
 - A **forecast**, not a measurement, from a model at the scale of the neighbourhood: a station device gives the forecast at the station, not what it measures.
 - Norway only. The index is the Norwegian one, not the European one.
-- Terms of MET Norway: an identifying User-Agent, one request per place per hour at most, and a pause on HTTP 429. Data © MET Norway, under the CC BY 4.0 licence ([terms](https://api.met.no/doc/TermsOfService)).
+- Terms of MET Norway: an identifying User-Agent, normally one request per place per hour, never before the `Expires` of the previous answer, longer waits after a failure, and a pause on HTTP 429. Data © MET Norway, under the CC BY 4.0 licence ([terms](https://api.met.no/doc/TermsOfService)).

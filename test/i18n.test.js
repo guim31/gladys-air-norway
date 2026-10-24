@@ -135,7 +135,7 @@ test('the feature names exist in every language, for every feature', () => {
 });
 
 test('the levels of the index and the fixed texts exist in every language', () => {
-  const short = new Set(['now', 'next24h', 'noData']);
+  const short = new Set(['now', 'next24h', 'next24hInline', 'noData']);
   assert.deepEqual(Object.keys(LEVELS), LEVEL_KEYS);
   const found = [
     ...Object.entries(LEVELS).flatMap(([key, value]) =>
@@ -166,6 +166,7 @@ test('the texts built from values exist in every language', () => {
     }),
     summaryNone: MESSAGES.summary({ place: 'MET Norway Hjemme', level: null }),
     outside: MESSAGES.outsideNorway(['Maison', 'Bureau']),
+    unknownStations: MESSAGES.unknownStations(['NO9999A']),
     checkOutside: MESSAGES.checkPlace({ name: 'MET Norway Maison', outside: true }),
     checkUnknown: MESSAGES.checkPlace({ name: 'MET Norway NO9999X', unknownStation: true }),
     checkError: MESSAGES.checkPlace({ name: 'MET Norway Hjemme', error: 'MET Norway: HTTP 503' }),

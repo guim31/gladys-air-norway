@@ -65,9 +65,9 @@ Die erste Auswertung nach der Installation legt nur die Ausgangsstufen fest: nic
 
 ## Szenenbeispiele
 
-- **Warnen, bevor es schlecht wird**: Auslöser „Verschlechterung erwartet“, Stufen Hoch und Sehr hoch → Nachricht senden „Luftqualität {{trigger.level_label}} um {{trigger.time}} bei {{trigger.place_name}} erwartet“.
+- **Warnen, bevor es schlecht wird**: Auslöser „Verschlechterung erwartet“, Stufen Hoch und Sehr hoch → Nachricht senden „Luftqualität {{triggerEvent.data.level_label}} um {{triggerEvent.data.time}} bei {{triggerEvent.data.place_name}} erwartet“.
 - **Fenster schließen**: Auslöser „Luftqualität verschlechtert“, Stufe Mäßig und schlechter → benachrichtigen oder die Lüftung herunterregeln; Auslöser „wieder normal“ → wieder hochregeln.
-- **Morgenbriefing**: um 7:00 Aktion „Luftqualität abrufen“ → `{{summary}}` mit dem Wetter senden.
+- **Morgenbriefing**: um 7:00 Aktion „Luftqualität abrufen“ → ihre Zusammenfassung mit dem Wetter senden.
 
 ## Fehlerbehebung
 
@@ -80,4 +80,4 @@ Die erste Auswertung nach der Installation legt nur die Ausgangsstufen fest: nic
 
 - Eine **Vorhersage**, keine Messung, aus einem Modell auf Ebene des Viertels: ein Stationsgerät liefert die Vorhersage an der Station, nicht ihre Messwerte.
 - Nur Norwegen. Der Index ist der norwegische, nicht der europäische.
-- Bedingungen von MET Norway: ein User-Agent, der die Integration nennt, höchstens eine Anfrage pro Ort und Stunde, eine Pause bei HTTP 429. Daten © MET Norway, unter der Lizenz CC BY 4.0 ([Bedingungen](https://api.met.no/doc/TermsOfService)).
+- Bedingungen von MET Norway: ein User-Agent, der die Integration nennt, normalerweise eine Anfrage pro Ort und Stunde, nie vor dem `Expires` der vorigen Antwort, längere Pausen nach einem Fehler, eine Pause bei HTTP 429. Daten © MET Norway, unter der Lizenz CC BY 4.0 ([Bedingungen](https://api.met.no/doc/TermsOfService)).

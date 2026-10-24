@@ -65,9 +65,9 @@ La primera evaluación tras la instalación solo fija los niveles de partida: no
 
 ## Ejemplos de escenas
 
-- **Avisar antes de que empeore**: disparador «degradación prevista», niveles Alto y Muy alto → enviar un mensaje «Calidad del aire {{trigger.level_label}} prevista a las {{trigger.time}} cerca de {{trigger.place_name}}».
+- **Avisar antes de que empeore**: disparador «degradación prevista», niveles Alto y Muy alto → enviar un mensaje «Calidad del aire {{triggerEvent.data.level_label}} prevista a las {{triggerEvent.data.time}} cerca de {{triggerEvent.data.place_name}}».
 - **Cerrar las ventanas**: disparador «calidad del aire degradada», nivel Moderado y peor → notificar, o bajar la ventilación; disparador «vuelta a la normalidad» → volver a subirla.
-- **Resumen de la mañana**: a las 7:00, acción «obtener la calidad del aire» → enviar `{{summary}}` con el tiempo.
+- **Resumen de la mañana**: a las 7:00, acción «obtener la calidad del aire» → enviar su resumen con el tiempo.
 
 ## Solución de problemas
 
@@ -80,4 +80,4 @@ La primera evaluación tras la instalación solo fija los niveles de partida: no
 
 - Una **previsión**, no una medición, de un modelo a escala de barrio: un dispositivo de estación da la previsión en la estación, no lo que mide.
 - Solo Noruega. El índice es el noruego, no el europeo.
-- Condiciones de MET Norway: un User-Agent que identifica la integración, una petición por lugar y por hora como máximo, y una pausa ante un HTTP 429. Datos © MET Norway, bajo la licencia CC BY 4.0 ([condiciones](https://api.met.no/doc/TermsOfService)).
+- Condiciones de MET Norway: un User-Agent que identifica la integración, normalmente una petición por lugar y por hora, nunca antes del `Expires` de la respuesta anterior, esperas más largas tras un fallo, y una pausa ante un HTTP 429. Datos © MET Norway, bajo la licencia CC BY 4.0 ([condiciones](https://api.met.no/doc/TermsOfService)).

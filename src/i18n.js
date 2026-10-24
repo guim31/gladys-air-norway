@@ -129,6 +129,7 @@ export const TEXT = {
   },
   now: { en: 'Now', fr: 'Maintenant', de: 'Jetzt', es: 'Ahora' },
   next24h: { en: 'Next 24 h', fr: 'Sur 24 h', de: 'Nächste 24 Std.', es: 'Próximas 24 h' },
+  next24hInline: { en: 'next 24 h', fr: 'sur 24 h', de: 'nächste 24 Std.', es: 'próximas 24 h' },
   noData: {
     en: 'No forecast',
     fr: 'Pas de prévision',
@@ -204,6 +205,17 @@ export const MESSAGES = {
     };
   },
 
+  /** The status of the Configuration screen when only unknown station codes are left. */
+  unknownStations(codes) {
+    const list = codes.join(', ');
+    return {
+      en: `Unknown station codes: ${list}. Use "Find a station".`,
+      fr: `Codes de station inconnus : ${list}. Utilisez « Trouver une station ».`,
+      de: `Unbekannte Stationscodes: ${list}. Nutze „Station finden“.`,
+      es: `Códigos de estación desconocidos: ${list}. Use «Buscar una estación».`,
+    };
+  },
+
   /** One line of the "Check the places" report. */
   checkPlace({ name, level, index, peak, error, outside, unknownStation }) {
     if (outside) {
@@ -235,7 +247,7 @@ export const MESSAGES = {
     return each(
       (lang) =>
         `${name}${colonOf(lang)} ${LEVELS[level][lang]} (${formatNumber(index)})` +
-        (later ? `, ${TEXT.next24h[lang].toLowerCase()}${colonOf(lang)} ${later[lang]}` : ''),
+        (later ? `, ${TEXT.next24hInline[lang]}${colonOf(lang)} ${later[lang]}` : ''),
     );
   },
 

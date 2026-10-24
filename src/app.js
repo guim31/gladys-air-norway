@@ -21,6 +21,7 @@ import { createPoller } from './poller.js';
 import { ACTION, checkPlaces, findStation } from './actions.js';
 import { GET_AIR_QUALITY, getAirQuality } from './scenes.js';
 import { WIDGET_KEY, buildAirQualityContent } from './widgets.js';
+import { idsOf } from './devices.js';
 import { MESSAGES, TEXT } from './i18n.js';
 
 const logger = createLogger({ name: 'air-norway' });
@@ -82,17 +83,20 @@ export function registerHandlers(gladys, { store = new Store(), fetch, timers = 
     let status = { connected: true };
     const known = hub.configuredRecords().filter((record) => hub.isKnown(record));
     const outside = hub.outsideNames();
+    const unknown = hub.unknownStationCodes();
     if (hub.units(config).length === 0) {
       status = { connected: false, message: TEXT.notConfigured };
     } else if (known.length === 0 && outside.length > 0) {
       status = { connected: false, message: MESSAGES.outsideNorway(outside) };
+    } else if (known.length === 0 && unknown.length > 0) {
+      status = { connected: false, message: MESSAGES.unknownStations(unknown) };
     } else if (hub.issues.isFailing('api')) {
       status = { connected: false, message: TEXT.apiUnreachable };
     }
     const key = JSON.stringify(status);
     if (key !== lastStatus) {
-      lastStatus = key;
       await gladys.setConnectionStatus(status.connected, status.message);
+      lastStatus = key; // only once Gladys took it: else sent again next time
     }
   }
 
@@ -114,9 +118,15 @@ export function registerHandlers(gladys, { store = new Store(), fetch, timers = 
     await hub.loadHouses();
     hub.prune(config);
     // The places known from /data first: the Discovery tab is complete even
-    // before the first read, or while the API is down.
-    await publishDevices();
-    await updateStatus();
+    // before the first read, or while the API is down. A failure here must
+    // not keep the timer from starting: the next cycle publishes again.
+    try {
+      await publishDevices();
+      await updateStatus();
+    } catch (err) {
+      hub.devicesChanged = true;
+      hub.issues.fail('discovery', `Cannot publish the devices: ${err.message}`);
+    }
     await poller.restart();
   }
 
@@ -169,10 +179,12 @@ export function registerHandlers(gladys, { store = new Store(), fetch, timers = 
     if (!record) {
       return;
     }
-    // A read when the forecast is older than an hour, then the evaluation
-    // (it sets the starting levels of the scene triggers) and every state.
+    // Every state of the place goes out again in the cycle below, in the
+    // poller's queue (never beside a timer cycle): a read when the forecast
+    // is older than an hour, the evaluation (it sets the starting levels of
+    // the scene triggers), the publication.
+    gladys.forgetPublishedStates(idsOf(gladys, record.id).device);
     await poller.refreshNow([record.id], { maxAgeMs: 60 * 60_000 });
-    await hub.publishStates(record, { force: true });
     gladys.requestWidgetRefresh(WIDGET_KEY);
   }
   gladys.onDeviceCreated(onDeviceAdded);

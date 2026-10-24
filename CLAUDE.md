@@ -270,4 +270,9 @@ long, et sur un « Sie »/« Ihr… » de politesse en allemand. Le store exige 
   `air_quality_forecast_degraded` sur le pire niveau des 24 h à venir (`time` en heure locale de Gladys via
   `TZ`). Repères `current` / `peak` gardés sous `/data` avec leur date (plus vieux que 3 h : pas de référence,
   donc pas d'événement).
+- Échec de lecture (5xx, délai, réseau, 400 imprévu) : nouvel essai après 5 min, 15 min, puis toutes les heures
+  (`record.failures`), sans quoi le minuteur relançait la requête chaque minute. La pause 429/403 est gardée sous
+  `/data` et bloque aussi « Trouver une station ».
+- `onDeviceCreated` republie **dans la file du poller** (`forgetPublishedStates` puis `refreshNow`) : publiés à
+  côté d'un cycle du minuteur, les événements de scène en attente pouvaient partir deux fois.
 - Pas de matériel : tout est testable contre l'API réelle, d'où les fixtures enregistrées.

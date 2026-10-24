@@ -313,3 +313,59 @@ test('the core poll is only a fallback: it does not read a place read recently',
   assert.equal(forecastCalls(w).length, before);
   assert.equal(START, Date.parse('2026-10-24T09:22:00Z'));
 });
+
+test('a failing read waits 5, then 15 minutes, then an hour, before the next one', async () => {
+  const w = await createWorld();
+  await createAll(w);
+  w.network.routes['forecast-oslo'] = { status: 503 };
+  w.advance(HOUR);
+  await w.app.poller.cycle();
+  const start = forecastCalls(w).length;
+  const minutes = [];
+  for (let minute = 1; minute <= 90; minute += 1) {
+    w.advance(60_000);
+    const before = forecastCalls(w).length;
+    await w.app.poller.cycle();
+    if (forecastCalls(w).length > before) {
+      minutes.push(minute);
+    }
+  }
+  assert.deepEqual(minutes, [5, 20, 80]);
+  assert.equal(forecastCalls(w).length, start + 3);
+});
+
+test('only unknown station codes: the status says so, not "outside Norway"', async () => {
+  const w = await createWorld({ config: { stations: 'NO9999A' }, houses: [] });
+  const status = w.gladys.fake.connectionStatus;
+  assert.equal(status.connected, false);
+  assert.match(status.message.en, /Unknown station codes: NO9999A/);
+});
+
+test('another area: a house not added yet is read again, the Discovery tab follows', async () => {
+  const w = await createWorld();
+  const before = forecastCalls(w).length;
+  await w.gladys.fake.configUpdated({ area_level: 'delomrade' });
+  assert.equal(forecastCalls(w).length, before + 1);
+  assert.match(forecastCalls(w).at(-1).path, /areaclass=delomrade$/);
+});
+
+test('the devices cannot be published at start: the timer still starts and retries', async () => {
+  const w = await createWorld({ connect: false });
+  const publish = w.gladys.publishDiscoveredDevices.bind(w.gladys);
+  let refused = 0;
+  w.gladys.publishDiscoveredDevices = async (devices) => {
+    if (refused < 2) {
+      refused += 1;
+      throw new Error('HTTP 500');
+    }
+    return publish(devices);
+  };
+  await w.gladys.connect();
+  assert.equal(refused, 2);
+  w.advance(HOUR);
+  await w.app.poller.cycle();
+  assert.deepEqual(
+    w.gladys.fake.discoveredDevices.map((device) => device.name),
+    ['MET Norway Hjemme'],
+  );
+});

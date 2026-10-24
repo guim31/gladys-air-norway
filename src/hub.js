@@ -57,6 +57,9 @@ export const READ_EVERY_MS = HOUR_MS;
 /** A place outside Norway, or an unknown station, is tried again this often. */
 const RETRY_UNKNOWN_MS = 24 * HOUR_MS;
 
+/** Waits after a failed read (5xx, timeout, network): 5 min, 15 min, then hourly. */
+const RETRY_DELAYS_MS = [5 * 60_000, 15 * 60_000, HOUR_MS];
+
 /** Pause of every request after a 429 without Retry-After, and after a 403. */
 const THROTTLED_PAUSE_MS = 30 * 60_000;
 const FORBIDDEN_PAUSE_MS = 6 * HOUR_MS;
@@ -127,12 +130,15 @@ export class Hub {
     if (Array.isArray(data.houses)) {
       this.houses = data.houses;
     }
+    // A 403 pause survives a restart.
+    this.pausedUntil = Number(data.pausedUntil) || 0;
   }
 
   async persist() {
     await this.store.save({
       version: STORE_VERSION,
       houses: this.houses,
+      pausedUntil: this.pausedUntil,
       records: [...this.records.values()],
     });
   }
@@ -230,11 +236,18 @@ export class Hub {
       .map((record) => buildDevice(this.gladys, record, config.language));
   }
 
-  /** The configured places MET Norway does not cover, by name. */
+  /** The configured houses MET Norway does not cover, by name. */
   outsideNames(config = this.getConfig()) {
     return this.configuredRecords(config)
-      .filter((record) => record.outside || record.unknownStation)
+      .filter((record) => record.outside)
       .map((record) => record.label || record.id.split(':')[1]);
+  }
+
+  /** The configured station codes MET Norway does not know. */
+  unknownStationCodes(config = this.getConfig()) {
+    return this.configuredRecords(config)
+      .filter((record) => record.unknownStation)
+      .map((record) => record.id.split(':')[1]);
   }
 
   /**
@@ -242,7 +255,15 @@ export class Hub {
    * `minAgeMs` ago (an hour by default) with an expired answer.
    */
   isDue(record, place, minAgeMs = READ_EVERY_MS) {
-    if (!record?.fetchedAt || record.query !== queryOf(place)) {
+    if (!record || record.query !== queryOf(place)) {
+      return true;
+    }
+    if (record.failures > 0) {
+      // A read failed: wait before the next one, longer each time.
+      const delay = RETRY_DELAYS_MS[Math.min(record.failures, RETRY_DELAYS_MS.length) - 1];
+      return this.now() - record.failedAt >= Math.min(delay, Math.max(minAgeMs, 60_000));
+    }
+    if (!record.fetchedAt) {
       return true;
     }
     const age = this.now() - record.fetchedAt;
@@ -317,6 +338,7 @@ export class Hub {
       record.lastModified = answer.lastModified;
       record.outside = false;
       record.unknownStation = false;
+      record.failures = 0;
       if (answer.forecast) {
         const { forecast } = answer;
         record.hours = mergeHours(record.hours, forecast.hours, this.now());
@@ -352,7 +374,10 @@ export class Hub {
         record.fetchedAt = this.now();
         record.outside = err.outside;
         record.unknownStation = err.unknownStation;
+        record.failures = 0;
+        // No forecast kept: the next read must download one, not get a 304.
         record.hours = [];
+        record.lastModified = null;
         this.persistNeeded = true;
         if (wasKnown) {
           this.devicesChanged = true;
@@ -361,7 +386,12 @@ export class Hub {
           `place:${place.id}`,
           `${deviceName(record)}: ${err.outside ? 'outside Norway' : 'unknown station'}`,
         );
-      } else if (err instanceof ApiError && (err.status === 429 || err.status === 403)) {
+        throw err;
+      }
+      record.failures = (record.failures ?? 0) + 1;
+      record.failedAt = this.now();
+      this.persistNeeded = true;
+      if (err instanceof ApiError && (err.status === 429 || err.status === 403)) {
         const pause =
           err.status === 403 ? FORBIDDEN_PAUSE_MS : (err.retryAfterMs ?? THROTTLED_PAUSE_MS);
         this.pausedUntil = this.now() + pause;
@@ -510,17 +540,13 @@ export class Hub {
    * Publish the states of a place whose device exists in Gladys. Only the
    * changes go out (the SDK deduplicates), plus a heartbeat.
    * @param {object} record
-   * @param {{ force?: boolean }} [options] force: the device was just added
    */
-  async publishStates(record, { force = false } = {}) {
+  async publishStates(record) {
     if (!this.isCreated(record)) {
       this.pendingEvents.delete(record.id);
       return;
     }
     const ids = idsOf(this.gladys, record.id);
-    if (force) {
-      this.gladys.forgetPublishedStates(ids.device);
-    }
     const language = this.getConfig().language;
     const snap = this.snapshot(record);
     const states = [];
@@ -549,14 +575,23 @@ export class Hub {
       }
     }
     // The events go out even if the states failed: the marks already moved.
+    // Taken out of the map before sending: a concurrent publication of the
+    // same place cannot send them twice; what fails goes back.
     const events = this.pendingEvents.get(record.id) ?? [];
+    this.pendingEvents.delete(record.id);
     while (events.length > 0) {
-      const event = events[0];
-      await this.gladys.publishSceneEvent(event.key, event.data);
-      events.shift();
+      try {
+        await this.gladys.publishSceneEvent(events[0].key, events[0].data);
+      } catch (err) {
+        this.pendingEvents.set(record.id, [
+          ...events,
+          ...(this.pendingEvents.get(record.id) ?? []),
+        ]);
+        throw err;
+      }
+      const event = events.shift();
       logger.info(`${deviceName(record)}: ${event.key} (${event.data.level})`);
     }
-    this.pendingEvents.delete(record.id);
     if (failure) {
       throw failure;
     }

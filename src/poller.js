@@ -16,6 +16,7 @@
 // -----------------------------------------------------------------------------
 
 import { createLogger } from '@gladysassistant/integration-sdk';
+import { queryOf } from './api.js';
 
 const logger = createLogger({ name: 'poller' });
 
@@ -50,7 +51,9 @@ export function createPoller({
   function wantedPlaces() {
     return hub.places().filter((place) => {
       const record = hub.records.get(place.id);
-      return !record?.fetchedAt || hub.isCreated(record) || !hub.isKnown(record);
+      // Moved, or another area: read again, so the Discovery tab is right.
+      const moved = record && record.query !== queryOf(place);
+      return !record?.fetchedAt || moved || hub.isCreated(record) || !hub.isKnown(record);
     });
   }
 

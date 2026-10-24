@@ -65,9 +65,9 @@ La première évaluation après l'installation ne fait que fixer les niveaux de 
 
 ## Exemples de scènes
 
-- **Prévenir avant que ça se gâte** : déclencheur « dégradation prévue », niveaux Élevé et Très élevé → envoyer un message « Qualité de l'air {{trigger.level_label}} prévue à {{trigger.time}} vers {{trigger.place_name}} ».
+- **Prévenir avant que ça se gâte** : déclencheur « dégradation prévue », niveaux Élevé et Très élevé → envoyer un message « Qualité de l'air {{triggerEvent.data.level_label}} prévue à {{triggerEvent.data.time}} vers {{triggerEvent.data.place_name}} ».
 - **Fermer les fenêtres** : déclencheur « qualité de l'air dégradée », niveau Modéré et pire → notifier, ou baisser la ventilation ; déclencheur « retour à la normale » → la remonter.
-- **Point du matin** : à 7 h, action « obtenir la qualité de l'air » → envoyer `{{summary}}` avec la météo.
+- **Point du matin** : à 7 h, action « obtenir la qualité de l'air » → envoyer son résumé avec la météo.
 
 ## Dépannage
 
@@ -80,4 +80,4 @@ La première évaluation après l'installation ne fait que fixer les niveaux de 
 
 - Une **prévision**, pas une mesure, issue d'un modèle à l'échelle du quartier : un appareil de station donne la prévision à la station, pas ce qu'elle mesure.
 - Norvège seulement. L'indice est l'indice norvégien, pas l'indice européen.
-- Conditions de MET Norway : un User-Agent qui identifie l'intégration, une requête par lieu et par heure au plus, une pause en cas de HTTP 429. Données © MET Norway, sous licence CC BY 4.0 ([conditions](https://api.met.no/doc/TermsOfService)).
+- Conditions de MET Norway : un User-Agent qui identifie l'intégration, normalement une requête par lieu et par heure, jamais avant l'`Expires` de la réponse précédente, des attentes plus longues après un échec, une pause en cas de HTTP 429. Données © MET Norway, sous licence CC BY 4.0 ([conditions](https://api.met.no/doc/TermsOfService)).

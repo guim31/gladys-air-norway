@@ -62,7 +62,7 @@
         "es": "Zona alrededor de una casa"
       },
       "description": {
-        "en": "The forecast of a house is the one of the area it lies in. Set when a house is first read; changing it reads the houses again.",
+        "en": "The forecast of a house is the one of the area it lies in. Changing it reads the houses again.",
         "fr": "La prévision d'une maison est celle de la zone où elle se trouve. Changer ce choix relit les maisons.",
         "de": "Die Vorhersage eines Hauses ist die des Gebiets, in dem es liegt. Eine Änderung liest die Häuser neu.",
         "es": "La previsión de una casa es la de la zona donde se encuentra. Cambiar esta opción vuelve a leer las casas."
