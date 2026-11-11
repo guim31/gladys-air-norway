@@ -43,8 +43,9 @@ the **Documentation** link of the Configuration screen.
 
 ## Requirements
 
-- Gladys Assistant **5.2.0** or later (the station search uses the house
-  picker of 5.2.0; the widget and the scene cards need 5.1).
+- Gladys Assistant **5.3.0** or later (the catalog countries need 5.3.0, the
+  station search the house picker of 5.2.0, the widget and the scene cards
+  5.1).
 - A house located in Norway, or a Norwegian station code.
 - Internet access to `api.met.no`.
 

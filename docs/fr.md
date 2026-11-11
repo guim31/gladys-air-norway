@@ -13,7 +13,7 @@ En lecture seule, par l'API ouverte de MET Norway (`api.met.no`) : sans compte n
 
 ## Prérequis
 
-- Gladys Assistant **5.2.0** ou plus récent.
+- Gladys Assistant **5.3.0** ou plus récent.
 - Une maison située **en Norvège** (Paramètres → Maisons → position), ou le code d'une station de mesure norvégienne. MET Norway n'a pas de prévision de qualité de l'air ailleurs.
 - Un accès Internet à `api.met.no`.
 
