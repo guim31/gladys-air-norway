@@ -8,8 +8,8 @@
     "de": "Luftqualitätsvorhersage von MET Norway für dein Zuhause oder eine Station: Index, Schadstoffe, 24 h.",
     "es": "Previsión de calidad del aire de MET Norway en su casa o una estación: índice, contaminantes, 24 h."
   },
-  "version": "1.0.0",
-  "docker_image": "ghcr.io/guim31/gladys-air-norway:1.0.0",
+  "version": "1.0.1",
+  "docker_image": "ghcr.io/guim31/gladys-air-norway:1.0.1",
   "gladys_version": ">=5.3.0",
   "cover_image": "https://raw.githubusercontent.com/guim31/gladys-air-norway/main/cover.png",
   "categories": ["environment"],

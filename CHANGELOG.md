@@ -10,6 +10,8 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-11-13
+
 ### Changed
 
 - Declared for Norway only (`countries: ["NO"]`): the Gladys catalog of an
@@ -35,5 +37,6 @@ the notes of the version's GitHub Release.
 - Feature names and texts in English, French, German and Spanish, and the
   documentation in the four languages.
 
-[Unreleased]: https://github.com/guim31/gladys-air-norway/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/guim31/gladys-air-norway/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/guim31/gladys-air-norway/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/guim31/gladys-air-norway/releases/tag/v1.0.0
